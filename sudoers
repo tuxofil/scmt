@@ -1,0 +1,4 @@
+scmt ALL = (root) NOPASSWD: tunctl -d scmt-*
+scmt ALL = (root) NOPASSWD: tunctl -u scmt -t scmt-*
+scmt ALL = (root) NOPASSWD: ip link set scmt-* up
+scmt ALL = (root) NOPASSWD: brctl addif *

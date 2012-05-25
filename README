@@ -1,0 +1,14 @@
+        Simple Container Management Tool
+
+Requirements:
+
+- coreutils
+- qemu-kvm
+- iproute
+- sudo
+- curl
+- sed
+- uml-utilities (tunctl)
+- bridge-utils (brctl)
+- bsdmainutils (hexdump)
+
