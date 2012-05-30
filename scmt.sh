@@ -254,7 +254,7 @@ scmt_powerdown(){
     scmt_monitor_run "$1" system_powerdown || :
 }
 
-scmt_kill(){
+scmt_do_kill(){
     scmt_monitor_run "$1" quit || :
 }
 
@@ -288,6 +288,13 @@ scmt_is_running(){
 }
 
 scmt_wait_stop(){
+    if scmt_is_running "$1"; then
+        scmt_wait_stop_ "$1"
+    else
+        return 0
+    fi
+}
+scmt_wait_stop_(){
     local ELAPSED
     [ -z "$MAX_WAIT_TIME" ] && MAX_WAIT_TIME=60
     ELAPSED="$2"
@@ -295,7 +302,7 @@ scmt_wait_stop(){
     [ $ELAPSED -ge $MAX_WAIT_TIME ] && return 1
     sleep 1s
     if scmt_is_running "$1"; then
-        scmt_wait_stop "$1" `expr "$ELAPSED" + 1`
+        scmt_wait_stop_ "$1" `expr "$ELAPSED" + 1`
     else
         return 0
     fi
@@ -447,9 +454,8 @@ scmt_start(){
         -net tap,vlan=0,ifname="$TAP",script=no \
         -pidfile pid \
         -nographic \
-        -daemonize \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
-        $OPT_VNC
+        $OPT_VNC &
     CONFIG=`scmt_config_name "$NAME"`
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
     echo "START=yes" >> "${CONFIG}.new"
@@ -499,7 +505,7 @@ scmt_stop(){
     scmt_verbose "Waiting container \"$NAME\" to stop..."
     scmt_wait_stop "$NAME" || \
         scmt_warning "Timeout waiting container \"$NAME\" to stop"
-    scmt_kill "$NAME"
+    scmt_do_kill "$NAME"
     scmt_is_running "$NAME" && \
         scmt_error "Unable to stop \"$NAME\""
     scmt_shutdown_cleanup "$NAME"
@@ -532,7 +538,7 @@ scmt_stop_all(){
                 scmt_verbose "Waiting container \"$NAME\" to stop..."
                 scmt_wait_stop "$NAME" || \
                     scmt_warning "Timeout waiting container \"$NAME\" to stop"
-                scmt_kill "$NAME"
+                scmt_do_kill "$NAME"
                 scmt_is_running "$NAME" && \
                     scmt_error "Unable to stop \"$NAME\""
                 scmt_shutdown_cleanup "$NAME"
@@ -561,7 +567,7 @@ scmt_kill(){
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
     echo "START=no" >> "${CONFIG}.new"
     mv -f "${CONFIG}.new" "$CONFIG"
-    scmt_kill "$NAME"
+    scmt_do_kill "$NAME"
     scmt_is_running "$NAME" && \
         scmt_error "Unable to stop \"$NAME\""
     scmt_shutdown_cleanup "$NAME"
