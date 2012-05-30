@@ -151,12 +151,17 @@ scmt_download_image(){
 }
 
 scmt_extract_image(){
-    local IMG
+    local IMG_RAW IMG_QCOW2
     scmt_verbose "Extracting image from $1..."
-    IMG="$2"/run/image.raw
+    IMG_RAW="$2"/run/image.raw
     tar --extract \
         --file "$1" \
-        --to-stdout > "$IMG"
+        --to-stdout > "$IMG_RAW"
+    scmt_verbose "Converting image to QCOW2 format..."
+    IMG_QCOW2="$2"/run/image.qcow2
+    qemu-img convert -O qcow2 "$IMG_RAW" "$IMG_QCOW2"
+    scmt_verbose "Removing raw image..."
+    rm -f -- "$IMG_RAW"
 }
 
 scmt_gen_mac(){
@@ -437,7 +442,7 @@ scmt_start(){
         -m "${MEM}M" \
         $OPT_CORES \
         -name "$NAME" \
-        -drive file=image.raw,index=0,media=disk,cache=none \
+        -drive file=image.qcow2,index=0,media=disk,cache=none,format=qcow2 \
         -net nic,macaddr="$MAC",vlan=0,model=virtio \
         -net tap,vlan=0,ifname="$TAP",script=no \
         -pidfile pid \
