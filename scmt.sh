@@ -227,6 +227,10 @@ scmt_pid_name(){
     echo "$RUNDIR"/"$1"/run/pid
 }
 
+scmt_mon_sock_name(){
+    echo "$RUNDIR"/"$1"/run/monitor.sock
+}
+
 scmt_pid(){
     local PIDFILE PID
     PIDFILE=`scmt_pid_name "$1"`
@@ -405,6 +409,7 @@ scmt_start(){
         -pidfile pid \
         -nographic \
         -daemonize \
+        -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
         $OPT_VNC
     CONFIG=`scmt_config_name "$NAME"`
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
