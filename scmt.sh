@@ -61,8 +61,8 @@ scmt_help(){
     echo -n "Usage:\n\t$BASENAME "
     case "$1" in
         base)
-            echo "list|add|del|start|start-all|stop|kill|status [options] [args]"
-            echo "\t$BASENAME list|add|del|start|start-all|stop|kill|status --help"
+            echo "list|add|del|start|start-all|stop|stop-all|kill|status [options] [args]"
+            echo "\t$BASENAME list|add|del|start|start-all|stop|stop-all|kill|status --help"
             echo "Common options:"
             echo "\t--verbose - be verbose;"
             echo "\t--quiet   - do not show warnings;"
@@ -99,6 +99,10 @@ scmt_help(){
         stop)
             echo "stop [--wait SECONDS] container-name"
             echo "Stops selected container."
+            ;;
+        stop-all)
+            echo "stop-all [--wait SECONDS]"
+            echo "Stops all containers. Use on system stop."
             ;;
         kill)
             echo "kill container-name"
@@ -247,6 +251,17 @@ scmt_powerdown(){
 
 scmt_kill(){
     scmt_monitor_run "$1" quit || :
+}
+
+scmt_shutdown_cleanup(){
+    local TAP PIDFILE
+    scmt_verbose "Removing network interfaces..."
+    TAP="scmt-$1"
+    sudo -n \
+        tunctl -d "$TAP" || \
+        scmt_warning "Failed to remove network interface"
+    PIDFILE=`scmt_pid_name "$1"`
+    rm -f -- "$PIDFILE"
 }
 
 scmt_pid(){
@@ -481,14 +496,44 @@ scmt_stop(){
     scmt_kill "$NAME"
     scmt_is_running "$NAME" && \
         scmt_error "Unable to stop \"$NAME\""
-    scmt_verbose "Removing network interfaces..."
-    TAP="scmt-$NAME"
-    sudo -n \
-        tunctl -d "$TAP" || \
-        scmt_warning "Failed to remove network interface"
-    PIDFILE=`scmt_pid_name "$1"`
-    rm -f -- "$PIDFILE"
+    scmt_shutdown_cleanup "$NAME"
     scmt_verbose "Stopped"
+}
+
+scmt_stop_all(){
+    local NAME
+    scmt_verbose "Entering 'stop-all' mode..."
+    scmt_help stop-all
+    while true; do
+        case "$1" in
+            --verbose) shift ;;
+            --trace) shift ;;
+            --quiet) shift ;;
+            --wait) export MAX_WAIT_TIME="$2"; shift 2 ;;
+            --) shift ; break ;;
+            -*) scmt_error "Unknown option: \"$1\"" ;;
+            *) break ;;
+        esac
+    done
+    export BASENAME
+    export VERBOSE
+    export TRACE
+    export QUIET
+    for NAME in `scmt_containers`; do
+        if scmt_is_running "$NAME"; then
+            (
+                scmt_powerdown "$NAME"
+                scmt_verbose "Waiting container \"$NAME\" to stop..."
+                scmt_wait_stop "$NAME" || \
+                    scmt_warning "Timeout waiting container \"$NAME\" to stop"
+                scmt_kill "$NAME"
+                scmt_is_running "$NAME" && \
+                    scmt_error "Unable to stop \"$NAME\""
+                scmt_shutdown_cleanup "$NAME"
+            ) &
+        fi
+    done
+    wait
 }
 
 scmt_kill(){
@@ -513,13 +558,7 @@ scmt_kill(){
     scmt_kill "$NAME"
     scmt_is_running "$NAME" && \
         scmt_error "Unable to stop \"$NAME\""
-    scmt_verbose "Removing network interfaces..."
-    TAP="scmt-$NAME"
-    sudo -n \
-        tunctl -d "$TAP" || \
-        scmt_warning "Failed to remove network interface"
-    PIDFILE=`scmt_pid_name "$1"`
-    rm -f -- "$PIDFILE"
+    scmt_shutdown_cleanup "$NAME"
     scmt_verbose "Stopped"
 }
 
@@ -590,8 +629,10 @@ case "$MODE" in
         scmt_start "$@" ;;
     start-all)
         scmt_start_all ;;
-    sto|stop)
+    stop)
         scmt_stop "$@" ;;
+    stop-all)
+        scmt_stop_all "$@" ;;
     k|ki|kil|kill)
         scmt_kill "$@" ;;
     stat|statu|status)
