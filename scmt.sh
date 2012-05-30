@@ -455,7 +455,7 @@ scmt_start_all(){
 }
 
 scmt_stop(){
-    local NAME CONFIG TAP
+    local MAX_WAIT_TIME NAME CONFIG TAP PIDFILE
     scmt_verbose "Entering 'stop' mode..."
     scmt_help stop
     while true; do
