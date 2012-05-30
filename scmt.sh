@@ -254,14 +254,15 @@ scmt_kill(){
 }
 
 scmt_shutdown_cleanup(){
-    local TAP PIDFILE
+    local TAP PIDFILE MONSOCK
     scmt_verbose "Removing network interfaces..."
     TAP="scmt-$1"
     sudo -n \
         tunctl -d "$TAP" || \
         scmt_warning "Failed to remove network interface"
     PIDFILE=`scmt_pid_name "$1"`
-    rm -f -- "$PIDFILE"
+    MONSOCK=`scmt_mon_sock_name "$1"`
+    rm -f -- "$PIDFILE" "$MONSOCK"
 }
 
 scmt_pid(){
