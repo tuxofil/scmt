@@ -61,8 +61,8 @@ scmt_help(){
     echo -n "Usage:\n\t$BASENAME "
     case "$1" in
         base)
-            echo "list|add|del|start|start-all|stop|status [options] [args]"
-            echo "\t$BASENAME list|add|del|start|start-all|stop|status --help"
+            echo "list|add|del|start|start-all|stop|kill|status [options] [args]"
+            echo "\t$BASENAME list|add|del|start|start-all|stop|kill|status --help"
             echo "Common options:"
             echo "\t--verbose - be verbose;"
             echo "\t--quiet   - do not show warnings;"
@@ -99,6 +99,10 @@ scmt_help(){
         stop)
             echo "stop [--wait SECONDS] container-name"
             echo "Stops selected container."
+            ;;
+        kill)
+            echo "kill container-name"
+            echo "Brutal kill selected container."
             ;;
         status)
             echo "status container-name"
@@ -487,6 +491,38 @@ scmt_stop(){
     scmt_verbose "Stopped"
 }
 
+scmt_kill(){
+    local NAME CONFIG TAP PIDFILE
+    scmt_verbose "Entering 'kill' mode..."
+    scmt_help kill
+    while true; do
+        case "$1" in
+            --verbose) shift ;;
+            --trace) shift ;;
+            --quiet) shift ;;
+            --) shift ; break ;;
+            -*) scmt_error "Unknown option: \"$1\"" ;;
+            *) break ;;
+        esac
+    done
+    NAME=`scmt_check_real_name "$1"` || exit $?
+    CONFIG=`scmt_config_name "$NAME"`
+    grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
+    echo "START=no" >> "${CONFIG}.new"
+    mv -f "${CONFIG}.new" "$CONFIG"
+    scmt_kill "$NAME"
+    scmt_is_running "$NAME" && \
+        scmt_error "Unable to stop \"$NAME\""
+    scmt_verbose "Removing network interfaces..."
+    TAP="scmt-$NAME"
+    sudo -n \
+        tunctl -d "$TAP" || \
+        scmt_warning "Failed to remove network interface"
+    PIDFILE=`scmt_pid_name "$1"`
+    rm -f -- "$PIDFILE"
+    scmt_verbose "Stopped"
+}
+
 scmt_status(){
     local NAME
     scmt_verbose "Entering 'status' mode..."
@@ -556,6 +592,8 @@ case "$MODE" in
         scmt_start_all ;;
     sto|stop)
         scmt_stop "$@" ;;
+    k|ki|kil|kill)
+        scmt_kill "$@" ;;
     stat|statu|status)
         scmt_status "$@" ;;
     *) HELP=0 ; scmt_help base ;;
