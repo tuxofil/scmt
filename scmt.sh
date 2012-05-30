@@ -97,7 +97,7 @@ scmt_help(){
             echo "Starts all containers with auto-start flag. Use on system start."
             ;;
         stop)
-            echo "stop container-name"
+            echo "stop [--wait SECONDS] container-name"
             echo "Stops selected container."
             ;;
         status)
@@ -231,6 +231,20 @@ scmt_mon_sock_name(){
     echo "$RUNDIR"/"$1"/run/monitor.sock
 }
 
+scmt_monitor_run(){
+    echo "$2" | \
+        socat STDIN unix:"`scmt_mon_sock_name \"$1\"`" > \
+        /dev/null 2>&1
+}
+
+scmt_powerdown(){
+    scmt_monitor_run "$1" system_powerdown || :
+}
+
+scmt_kill(){
+    scmt_monitor_run "$1" quit || :
+}
+
 scmt_pid(){
     local PIDFILE PID
     PIDFILE=`scmt_pid_name "$1"`
@@ -249,11 +263,11 @@ scmt_is_running(){
 }
 
 scmt_wait_stop(){
-    local MAX_TIME ELAPSED
-    MAX_TIME=5
+    local ELAPSED
+    [ -z "$MAX_WAIT_TIME" ] && MAX_WAIT_TIME=60
     ELAPSED="$2"
     [ -z "$2" ] && ELAPSED=0
-    [ $ELAPSED -ge $MAX_TIME ] && return 1
+    [ $ELAPSED -ge $MAX_WAIT_TIME ] && return 1
     sleep 1s
     if scmt_is_running "$1"; then
         scmt_wait_stop "$1" `expr "$ELAPSED" + 1`
@@ -445,6 +459,7 @@ scmt_stop(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --wait) MAX_WAIT_TIME="$2"; shift 2 ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -455,19 +470,20 @@ scmt_stop(){
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
     echo "START=no" >> "${CONFIG}.new"
     mv -f "${CONFIG}.new" "$CONFIG"
-    if PID=`scmt_pid "$NAME"`; then
-        kill "$PID" || exit $?
-        scmt_verbose "Waiting container \"$NAME\" to stop..."
-        scmt_wait_stop "$NAME" || \
-            scmt_error "Timeout waiting container \"$NAME\" to stop"
-        scmt_verbose "Removing network interfaces..."
-        TAP="scmt-$NAME"
-        sudo -n \
-            tunctl -d "$TAP" || \
-            scmt_warning "Failed to remove network interface"
-        PIDFILE=`scmt_pid_name "$1"`
-        rm -f -- "$PIDFILE"
-    fi
+    scmt_powerdown "$NAME"
+    scmt_verbose "Waiting container \"$NAME\" to stop..."
+    scmt_wait_stop "$NAME" || \
+        scmt_warning "Timeout waiting container \"$NAME\" to stop"
+    scmt_kill "$NAME"
+    scmt_is_running "$NAME" && \
+        scmt_error "Unable to stop \"$NAME\""
+    scmt_verbose "Removing network interfaces..."
+    TAP="scmt-$NAME"
+    sudo -n \
+        tunctl -d "$TAP" || \
+        scmt_warning "Failed to remove network interface"
+    PIDFILE=`scmt_pid_name "$1"`
+    rm -f -- "$PIDFILE"
     scmt_verbose "Stopped"
 }
 
