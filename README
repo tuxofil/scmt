@@ -11,4 +11,5 @@ Requirements:
 - uml-utilities (tunctl)
 - bridge-utils (brctl)
 - bsdmainutils (hexdump)
+- socat
 
