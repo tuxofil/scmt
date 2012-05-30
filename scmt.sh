@@ -403,6 +403,7 @@ scmt_start(){
         -net nic,macaddr="$MAC",vlan=0,model=virtio \
         -net tap,vlan=0,ifname="$TAP",script=no \
         -pidfile pid \
+        -nographic \
         -daemonize \
         $OPT_VNC
     CONFIG=`scmt_config_name "$NAME"`
