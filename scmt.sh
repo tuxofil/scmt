@@ -74,7 +74,7 @@ scmt_help(){
             ;;
         add)
             echo -n "add [--mem MBYTES] [--cores CORES] "
-            echo    "[--mac MAC] [--vnc] [--start] "
+            echo -n "[--mac MAC] [--vnc] [--start] "
             echo    "container-name image-url"
             echo "Adds new container with disk image from URL specified."
             ;;
