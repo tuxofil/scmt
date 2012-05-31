@@ -308,6 +308,14 @@ scmt_wait_stop_(){
     fi
 }
 
+scmt_lock(){
+    local LOCKFILE
+    LOCKFILE="$RUNDIR"/"$1"/lock
+    exec 3>"$LOCKFILE"
+    flock -n -x 3 || \
+        scmt_error "There is pending operation for \"$1\". Try again later."
+}
+
 ## ----------------------------------------------------------------------
 ## Invocation modes
 ## ----------------------------------------------------------------------
@@ -366,6 +374,7 @@ scmt_add(){
         scmt_error "container with name \"$NAME\" already exists"
     rm -rf -- "$TGTDIR" || exit 1
     mkdir -p "$TGTDIR" || exit 1
+    scmt_lock "$NAME"
     mkdir -p "$TGTDIR"/run || exit 1
     URL="$2"
     scmt_deploy_image "$URL" "$TGTDIR"
@@ -404,6 +413,7 @@ scmt_del(){
         esac
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
     scmt_stop "$NAME"
     scmt_verbose "Removing container files..."
     rm -rf -- "$RUNDIR"/"$NAME"/*
@@ -427,6 +437,7 @@ scmt_start(){
         esac
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
     scmt_container_config "$NAME"
     scmt_verbose "Preparing network interface..."
     TAP="scmt-$NAME"
@@ -497,6 +508,7 @@ scmt_stop(){
         esac
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
     CONFIG=`scmt_config_name "$NAME"`
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
     echo "START=no" >> "${CONFIG}.new"
@@ -534,6 +546,7 @@ scmt_stop_all(){
     for NAME in `scmt_containers`; do
         if scmt_is_running "$NAME"; then
             (
+                scmt_lock "$NAME"
                 scmt_powerdown "$NAME"
                 scmt_verbose "Waiting container \"$NAME\" to stop..."
                 scmt_wait_stop "$NAME" || \
@@ -563,6 +576,7 @@ scmt_kill(){
         esac
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
     CONFIG=`scmt_config_name "$NAME"`
     grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
     echo "START=no" >> "${CONFIG}.new"

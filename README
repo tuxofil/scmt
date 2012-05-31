@@ -12,4 +12,5 @@ Requirements:
 - bridge-utils (brctl)
 - bsdmainutils (hexdump)
 - socat
+- flock
 
