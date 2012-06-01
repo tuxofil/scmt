@@ -61,8 +61,10 @@ scmt_help(){
     echo -n "Usage:\n\t$BASENAME "
     case "$1" in
         base)
-            echo "list|add|del|start|start-all|stop|stop-all|kill|status [options] [args]"
-            echo "\t$BASENAME list|add|del|start|start-all|stop|stop-all|kill|status --help"
+            echo -n "list|add|del|start|start-all|stop|stop-all|"
+            echo    "restart|reboot|kill|status [options] [args]"
+            echo -n "\t$BASENAME list|add|del|start|start-all|stop|stop-all|"
+            echo    "restart|reboot|kill|status --help"
             echo "Common options:"
             echo "\t--verbose - be verbose;"
             echo "\t--quiet   - do not show warnings;"
@@ -107,6 +109,14 @@ scmt_help(){
         kill)
             echo "kill container-name"
             echo "Brutal kill selected container."
+            ;;
+        restart)
+            echo "restart [--wait SECONDS] container-name"
+            echo "Shutdown container and start again."
+            ;;
+        reboot)
+            echo "reboot container-name"
+            echo "Reboot container."
             ;;
         status)
             echo "status container-name"
@@ -254,6 +264,10 @@ scmt_powerdown(){
     scmt_monitor_run "$1" system_powerdown || :
 }
 
+scmt_reset(){
+    scmt_monitor_run "$1" system_reset || :
+}
+
 scmt_do_kill(){
     scmt_monitor_run "$1" quit || :
 }
@@ -310,6 +324,7 @@ scmt_wait_stop_(){
 
 scmt_lock(){
     local LOCKFILE
+    [ "$NOLOCK" = "yes" ] && return 0
     LOCKFILE="$RUNDIR"/"$1"/lock
     exec 3>"$LOCKFILE"
     flock -n -x 3 || \
@@ -588,6 +603,51 @@ scmt_kill(){
     scmt_verbose "Stopped"
 }
 
+scmt_restart(){
+    local MAX_WAIT_TIME NAME NOLOCK
+    scmt_verbose "Entering 'restart' mode..."
+    scmt_help restart
+    while true; do
+        case "$1" in
+            --verbose) shift ;;
+            --trace) shift ;;
+            --quiet) shift ;;
+            --wait) MAX_WAIT_TIME="$2"; shift 2 ;;
+            --) shift ; break ;;
+            -*) scmt_error "Unknown option: \"$1\"" ;;
+            *) break ;;
+        esac
+    done
+    NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
+    NOLOCK=yes
+    scmt_stop --wait "$MAX_WAIT_TIME" -- "$NAME" && \
+        scmt_start -- "$NAME"
+}
+
+scmt_reboot(){
+    local NAME
+    scmt_verbose "Entering 'restart' mode..."
+    scmt_help restart
+    while true; do
+        case "$1" in
+            --verbose) shift ;;
+            --trace) shift ;;
+            --quiet) shift ;;
+            --) shift ; break ;;
+            -*) scmt_error "Unknown option: \"$1\"" ;;
+            *) break ;;
+        esac
+    done
+    NAME=`scmt_check_real_name "$1"` || exit $?
+    scmt_lock "$NAME"
+    if scmt_reset "$NAME"; then
+        scmt_verbose "Rebooted"
+    else
+        scmt_error "\"$1\" is not running"
+    fi
+}
+
 scmt_status(){
     local NAME
     scmt_verbose "Entering 'status' mode..."
@@ -644,6 +704,8 @@ mkdir -p "$RUNDIR" || exit 1
 MODE="$1"
 shift
 
+NOLOCK=no
+
 case "$MODE" in
     l|li|lis|list)
         scmt_list ;;
@@ -661,6 +723,10 @@ case "$MODE" in
         scmt_stop_all "$@" ;;
     k|ki|kil|kill)
         scmt_kill "$@" ;;
+    res|rest|resta|restart)
+        scmt_restart "$@" ;;
+    reb|rebo|reboo|reboot)
+        scmt_reboot "$@" ;;
     stat|statu|status)
         scmt_status "$@" ;;
     *) HELP=0 ; scmt_help base ;;
