@@ -83,8 +83,8 @@ scmt_help(){
             echo "Shows deployed containers with their statuses."
             ;;
         add)
-            echo -n "add [--mem MBYTES] [--cores CORES] "
-            echo -n "[--mac MAC] [--bridge BRIDGE] [--vnc] [--start] "
+            echo -n "add [--mem MBYTES] [--cores CORES] [--vnc] [--start] "
+            echo -n "[--net [BRIDGE][,MACADDR]] [--net ...] "
             echo    "container-name image-url"
             echo "Adds new container with disk image from URL specified."
             ;;
@@ -421,6 +421,27 @@ scmt_interfaces_down(){
     rm -f "$IFS_FILE"
 }
 
+scmt_parse_net(){
+    BRIDGE=""
+    MAC=""
+    echo "$1" | \
+        grep -Ei '^([a-z0-9_-]+)?([;,][a-f0-9]{2}(:[a-f0-9]{2}){5})?$' \
+        > /dev/null || \
+        scmt_error "Bad network configuration: '$1'"
+    BRIDGE=`echo "$1" | \
+        grep -Ei '^[a-z0-9_-]+([;,].*)?$' | \
+        sed -r 's/^([a-z0-9_-]+)([;,].*)?$/\1/i'`
+    if [ ! -z "$BRIDGE" ]; then
+        ( scmt_check_bridge "$BRIDGE" ) > /dev/null 2>&1 || \
+            scmt_warning "There is no bridge like '$BRIDGE' in host system."
+    fi
+    MAC=`echo "$1" | \
+        grep -Ei '^.*[;,][a-f0-9:]+$' | \
+        sed -r 's/^(.*[;,])(.+)$/\2/i' | \
+        tr '[a-f]' '[A-F]'`
+    [ -z "$MAC" ] && MAC=$(scmt_gen_mac)
+}
+
 ## ----------------------------------------------------------------------
 ## Invocation modes
 ## ----------------------------------------------------------------------
@@ -452,6 +473,8 @@ scmt_add(){
     local MEM CORES MAC BRIDGE VNC START NAME TGTDIR URL RETVAL
     scmt_verbose "Entering 'add' mode..."
     scmt_help add
+    local NETCFG=""
+    local NETINDEX=0
     while true; do
         case "$1" in
             --verbose) shift ;;
@@ -460,13 +483,11 @@ scmt_add(){
             --debug) shift ;;
             --mem) MEM="$2" ; shift 2 ;;
             --cores) CORES="$2" ; shift 2 ;;
-            --mac) MAC="$2" ; shift 2 ;;
-            --bridge)
-                if [ -z "$2" ]; then
-                    BRIDGE="###none###"
-                else
-                    BRIDGE="$2"
-                fi
+            --net)
+                scmt_parse_net "$2"
+                NETCFG=`echo "${NETCFG}\nBRIDGE${NETINDEX}=$BRIDGE"`
+                NETCFG=`echo "${NETCFG}\nMAC${NETINDEX}=$MAC"`
+                NETINDEX=$(($NETINDEX + 1))
                 shift 2 ;;
             --vnc) VNC=`scmt_free_vnc_port` ; shift ;;
             --start) START="yes" ; shift ;;
@@ -477,25 +498,9 @@ scmt_add(){
     done
     [ -z "$MEM" ] && MEM=128
     [ -z "$CORES" ] && CORES=1
-    [ -z "$MAC" ] && MAC=`scmt_gen_mac`
     [ -z "$VNC" ] && VNC=0
-    if [ "$BRIDGE" = "###none###" ]; then
-        BRIDGE=""
-    else
-        BRIDGES=$(scmt_bridges)
-        BRIDGES_COUNT=`echo "$BRIDGES" | wc -w`
-        if [ $BRIDGES_COUNT = 1 ]; then
-            BRIDGE=`echo "$BRIDGES" | awk '{print $1}'`
-        elif [ $BRIDGES_COUNT = 0 ]; then
-            scmt_warning "There is no bridges in host system."
-            BRIDGE=""
-        else
-            scmt_warning "Target bridge does not specified."
-            BRIDGE=""
-        fi
-    fi
     NAME=`scmt_check_name "$1"` || exit $?
-    scmt_verbose "$NAME: MEM=${MEM}M; CORES=${CORES}; MAC=${MAC}; VNC=${VNC}"
+    scmt_verbose "$NAME: MEM=${MEM}M; CORES=${CORES}; VNC=${VNC}"
     TGTDIR="$SCMT_RUNDIR"/"$NAME"
     [ -f "$TGTDIR"/config ] && \
         scmt_error "container with name \"$NAME\" already exists"
@@ -514,9 +519,8 @@ scmt_add(){
     cat > "$TGTDIR"/config <<-EOF
 	MEM=$MEM
 	CORES=$CORES
-	MAC0=$MAC
-	BRIDGE0=$BRIDGE
 	VNC=$VNC
+	$NETCFG
 	EOF
     scmt_set_autostart "$NAME"
     if [ "$START" = "yes" ]; then
