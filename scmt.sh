@@ -169,6 +169,8 @@ scmt_extract_image(){
     IMG_RAW="$2"/run/image.raw
     tar --extract \
         --file "$1" \
+        --no-same-owner \
+        --no-same-permissions \
         --to-stdout > "$IMG_RAW"
     scmt_verbose "Converting image to QCOW2 format..."
     IMG_QCOW2="$2"/run/image.qcow2
