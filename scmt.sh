@@ -317,6 +317,25 @@ scmt_is_running(){
     scmt_pid "$1" > /dev/null
 }
 
+scmt_is_autostart(){
+    local FILENAME=$(scmt_autostart_flag_name "$1")
+    [ -f "$FILENAME" ]
+}
+
+scmt_set_autostart(){
+    local FILENAME=$(scmt_autostart_flag_name "$1")
+    touch "$FILENAME"
+}
+
+scmt_unset_autostart(){
+    local FILENAME=$(scmt_autostart_flag_name "$1")
+    rm -f -- "$FILENAME"
+}
+
+scmt_autostart_flag_name(){
+    "$SCMT_RUNDIR"/"$1"/autostart.flag
+}
+
 scmt_wait_stop(){
     if scmt_is_running "$1"; then
         scmt_wait_stop_ "$1"
@@ -477,8 +496,8 @@ CORES=$CORES
 MAC[0]=$MAC
 BRIDGE[0]=$BRIDGE
 VNC=$VNC
-START=no
 EOF
+    scmt_set_autostart "$NAME"
     if [ "$START" = "yes" ]; then
         scmt_start "$NAME"
     else
@@ -547,22 +566,17 @@ scmt_start(){
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
         $OPT_VNC &
-    CONFIG=`scmt_config_name "$NAME"`
-    grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
-    echo "START=yes" >> "${CONFIG}.new"
-    mv -f "${CONFIG}.new" "$CONFIG"
     set +e
     scmt_verbose "Started"
 }
 
 scmt_start_all(){
-    local NAME START
+    local NAME
     scmt_verbose "Entering 'start-all' mode..."
     scmt_help start-all
     for NAME in `scmt_containers`; do
         if ! scmt_is_running "$NAME"; then
-            scmt_container_config "$NAME"
-            if [ "$START" = "yes" ]; then
+            if scmt_is_autostart "$NAME"; then
                 scmt_is_verbose && echo -n "Starting \"$NAME\"..."
                 scmt_start "$NAME"
             fi
@@ -590,10 +604,6 @@ scmt_stop(){
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
     scmt_lock "$NAME"
-    CONFIG=`scmt_config_name "$NAME"`
-    grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
-    echo "START=no" >> "${CONFIG}.new"
-    mv -f "${CONFIG}.new" "$CONFIG"
     scmt_powerdown "$NAME"
     scmt_verbose "Waiting container \"$NAME\" to stop..."
     scmt_wait_stop "$NAME" || \
@@ -660,10 +670,6 @@ scmt_kill(){
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
     scmt_lock "$NAME"
-    CONFIG=`scmt_config_name "$NAME"`
-    grep -Ev '^START=.*' "$CONFIG" > "${CONFIG}.new"
-    echo "START=no" >> "${CONFIG}.new"
-    mv -f "${CONFIG}.new" "$CONFIG"
     scmt_do_kill "$NAME"
     scmt_is_running "$NAME" && \
         scmt_error "Unable to stop \"$NAME\""
