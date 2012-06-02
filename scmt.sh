@@ -476,8 +476,8 @@ scmt_add(){
                     BRIDGE="$2"
                 fi
                 shift 2 ;;
-            --vnc) VNC=`scmt_free_vnc_port` shift ;;
-            --start) START="yes" ;;
+            --vnc) VNC=`scmt_free_vnc_port` ; shift ;;
+            --start) START="yes" ; shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
