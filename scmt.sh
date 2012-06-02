@@ -229,6 +229,7 @@ scmt_used_vnc_ports(){
 
 scmt_containers(){
     local DIR
+    [ ! -d "$RUNDIR" ] && return 0
     for DIR in "$RUNDIR"/*; do
         if [ -f "$DIR"/config ]; then
             echo `basename "$DIR"`
@@ -757,8 +758,6 @@ done
     scmt_error "Sorry, you are not a member of 'scmt' group."
 
 umask -u=rwx,g=rwx,o=
-
-mkdir -p "$RUNDIR" || exit 1
 
 [ $# = 0 ] && HELP=0 && scmt_help base
 MODE="$1"
