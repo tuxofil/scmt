@@ -14,7 +14,7 @@
 
 # Where containers image and configs will be stored.
 # Default: ./run
-#RUNDIR=./run
+#SCMT_RUNDIR=./run
 
 # Configuration file.
 # Default: /etc/scmt.conf
@@ -197,7 +197,7 @@ scmt_check_name(){
 scmt_check_real_name(){
     local NAME
     NAME=`scmt_check_name "$1"` || exit $?
-    [ -f "$RUNDIR"/"$NAME"/config ] || \
+    [ -f "$SCMT_RUNDIR"/"$NAME"/config ] || \
         scmt_error "no such container: \"$NAME\""
     echo "$NAME"
 }
@@ -221,7 +221,7 @@ scmt_free_vnc_port(){
 scmt_used_vnc_ports(){
     local i
     for i in `scmt_containers`; do
-        grep -E '^VNC=[0-9]+$' "$RUNDIR"/"$i"/config | \
+        grep -E '^VNC=[0-9]+$' "$SCMT_RUNDIR"/"$i"/config | \
             grep -v '^VNC=0$' | \
             sed 's/VNC=//'
     done
@@ -229,8 +229,8 @@ scmt_used_vnc_ports(){
 
 scmt_containers(){
     local DIR
-    [ ! -d "$RUNDIR" ] && return 0
-    for DIR in "$RUNDIR"/*; do
+    [ ! -d "$SCMT_RUNDIR" ] && return 0
+    for DIR in "$SCMT_RUNDIR"/*; do
         if [ -f "$DIR"/config ]; then
             echo `basename "$DIR"`
         fi
@@ -246,19 +246,19 @@ scmt_container_config(){
 }
 
 scmt_config_name(){
-    echo "$RUNDIR"/"$1"/config
+    echo "$SCMT_RUNDIR"/"$1"/config
 }
 
 scmt_pid_name(){
-    echo "$RUNDIR"/"$1"/run/pid
+    echo "$SCMT_RUNDIR"/"$1"/run/pid
 }
 
 scmt_mon_sock_name(){
-    echo "$RUNDIR"/"$1"/run/monitor.sock
+    echo "$SCMT_RUNDIR"/"$1"/run/monitor.sock
 }
 
 scmt_ifs_name(){
-    echo "$RUNDIR"/"$1"/run/ifs
+    echo "$SCMT_RUNDIR"/"$1"/run/ifs
 }
 
 scmt_monitor_run(){
@@ -328,7 +328,7 @@ scmt_wait_stop_(){
 scmt_lock(){
     local LOCKFILE
     [ "$NOLOCK" = "yes" ] && return 0
-    LOCKFILE="$RUNDIR"/"$1"/lock
+    LOCKFILE="$SCMT_RUNDIR"/"$1"/lock
     exec 3>"$LOCKFILE"
     flock -n -x 3 || \
         scmt_error "There is pending operation for \"$1\". Try again later."
@@ -442,7 +442,7 @@ scmt_add(){
     [ -z "$VNC" ] && VNC=0
     NAME=`scmt_check_name "$1"` || exit $?
     scmt_verbose "$NAME: MEM=${MEM}M; CORES=${CORES}; MAC=${MAC}; VNC=${VNC}"
-    TGTDIR="$RUNDIR"/"$NAME"
+    TGTDIR="$SCMT_RUNDIR"/"$NAME"
     [ -f "$TGTDIR"/config ] && \
         scmt_error "container with name \"$NAME\" already exists"
     rm -rf -- "$TGTDIR" || exit 1
@@ -490,8 +490,8 @@ scmt_del(){
     scmt_lock "$NAME"
     scmt_stop "$NAME"
     scmt_verbose "Removing container files..."
-    rm -rf -- "$RUNDIR"/"$NAME"/*
-    [ -d "$RUNDIR"/"$NAME" ] || \
+    rm -rf -- "$SCMT_RUNDIR"/"$NAME"/*
+    [ -d "$SCMT_RUNDIR"/"$NAME" ] || \
         scmt_warning "Some files was not removed"
     scmt_verbose "Deleted"
 }
@@ -520,7 +520,7 @@ scmt_start(){
     OPT_VNC=""
     [ $VNC -gt 0 ] && OPT_VNC="-vnc :$VNC"
     scmt_verbose "Starting container..."
-    cd "$RUNDIR"/"$NAME"/run
+    cd "$SCMT_RUNDIR"/"$NAME"/run
     kvm \
         -m "${MEM}M" \
         $OPT_CORES \
@@ -747,7 +747,7 @@ if [ -f "$SCMT_CONFIG" ]; then
         scmt_error "failed to read config file \"$SCMT_CONFIG\""
 fi
 
-[ -z "$RUNDIR" ] && RUNDIR="./run"
+[ -z "$SCMT_RUNDIR" ] && SCMT_RUNDIR="./run"
 [ -z "$SCMT_GROUP" ] && SCMT_GROUP="scmt"
 
 IS_SCMT=no
