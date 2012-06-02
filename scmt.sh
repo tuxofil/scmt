@@ -491,12 +491,12 @@ scmt_add(){
     fi
     scmt_verbose "Creating container config..."
     cat > "$TGTDIR"/config <<-EOF
-MEM=$MEM
-CORES=$CORES
-MAC[0]=$MAC
-BRIDGE[0]=$BRIDGE
-VNC=$VNC
-EOF
+	MEM=$MEM
+	CORES=$CORES
+	MAC[0]=$MAC
+	BRIDGE[0]=$BRIDGE
+	VNC=$VNC
+	EOF
     scmt_set_autostart "$NAME"
     if [ "$START" = "yes" ]; then
         scmt_start "$NAME"
