@@ -16,17 +16,19 @@
 # Default: ./run
 #RUNDIR=./run
 
-# Temporary directory.
-# Default: /tmp
-#TMPDIR=/tmp
-
-# Network bridge name
-# Default: br0
-#NET_BRIDGE=br0
-
 # Configuration file.
 # Default: /etc/scmt.conf
 #SCMT_CONFIG=/etc/scmt.conf
+
+# System group name
+# Default: scmt
+#SCMT_GROUP=scmt
+
+## ----------------------------------------------------------------------
+## Binary paths
+
+BRCTL=/usr/sbin/brctl
+TUNCTL=/usr/sbin/tunctl
 
 ## ----------------------------------------------------------------------
 ## Utility functions
@@ -254,6 +256,10 @@ scmt_mon_sock_name(){
     echo "$RUNDIR"/"$1"/run/monitor.sock
 }
 
+scmt_ifs_name(){
+    echo "$RUNDIR"/"$1"/run/ifs
+}
+
 scmt_monitor_run(){
     echo "$2" | \
         socat STDIN unix:"`scmt_mon_sock_name \"$1\"`" > \
@@ -273,12 +279,8 @@ scmt_do_kill(){
 }
 
 scmt_shutdown_cleanup(){
-    local TAP PIDFILE MONSOCK
-    scmt_verbose "Removing network interfaces..."
-    TAP="scmt-$1"
-    sudo -n \
-        tunctl -d "$TAP" || \
-        scmt_warning "Failed to remove network interface"
+    local PIDFILE MONSOCK
+    scmt_interfaces_down "$1"
     PIDFILE=`scmt_pid_name "$1"`
     MONSOCK=`scmt_mon_sock_name "$1"`
     rm -f -- "$PIDFILE" "$MONSOCK"
@@ -329,6 +331,61 @@ scmt_lock(){
     exec 3>"$LOCKFILE"
     flock -n -x 3 || \
         scmt_error "There is pending operation for \"$1\". Try again later."
+}
+
+scmt_bridges(){
+    "$BRCTL" show | \
+        tail --lines=+2 | \
+        grep '^[a-z0-9-]' | \
+        awk '{print $1}'
+}
+
+scmt_check_bridge(){
+    local NAME="$1"
+    for B in `scmt_bridges`; do
+        [ "$B" = "$NAME" ] && return 0
+    done
+    scmt_error "There is no bridge like \"$NAME\"."
+}
+
+scmt_interfaces_up(){
+    local NAME="$1"
+    local IFS_FILE=`scmt_ifs_name "$NAME"`
+    scmt_interfaces_down "$NAME"
+    scmt_verbose "Preparing network interfaces..."
+    set -e
+    unset MAC BRIDGE
+    scmt_container_config "$NAME"
+    touch "$IFS_FILE"
+    I=0
+    while [ ! -z "${MAC[$I]}" ]; do
+        TAP=$(sudo -n "$TUNCTL" -b -g "$SCMT_GROUP")
+        echo "$TAP" >> "$IFS_FILE"
+        sudo -n ip link set "$TAP" up
+        if [ ! -z "${BRIDGE[$I]}" ]; then
+            scmt_check_bridge "${BRIDGE[$I]}"
+            sudo -n "$BRCTL" addif "${BRIDGE[$I]}" "$TAP"
+        fi
+        echo -n "-net nic,macaddr=${MAC[$I]},vlan=$I,model=virtio "
+        echo    "-net tap,vlan=$I,ifname=$TAP,script=no,downscript=no "
+        I=$(($I + 1))
+    done
+    set +e
+}
+
+scmt_interfaces_down(){
+    local NAME="$1"
+    local IFS_FILE=`scmt_ifs_name "$NAME"`
+    local TAP
+    if [ -f "$IFS_FILE" ]; then
+        scmt_verbose "Removing network interfaces..."
+        for TAP in `cat "$IFS_FILE"`; do
+            scmt_verbose "  removing $TAP..."
+            "$TUNCTL" -d "$TAP" > /dev/null || \
+                scmt_warning "Failed to remove $TAP interface"
+        done
+    fi
+    rm -f "$IFS_FILE"
 }
 
 ## ----------------------------------------------------------------------
@@ -438,7 +495,7 @@ scmt_del(){
 }
 
 scmt_start(){
-    local NAME TAP OPT_CORES OPT_VNC CORES VNC MAC CONFIG
+    local NAME OPT_CORES OPT_VNC CORES VNC CONFIG
     scmt_verbose "Entering 'start' mode..."
     scmt_help start
     while true; do
@@ -453,18 +510,9 @@ scmt_start(){
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
     scmt_lock "$NAME"
-    scmt_container_config "$NAME"
-    scmt_verbose "Preparing network interface..."
-    TAP="scmt-$NAME"
     set -e
-    sudo -n \
-        tunctl -d "$TAP" > /dev/null 2>&1
-    sudo -n \
-        tunctl -u `id --user --name` -t "$TAP"
-    sudo -n \
-        ip link set "$TAP" up
-    sudo -n \
-        brctl addif "$NET_BRIDGE" "$TAP"
+    OPT_NET=`scmt_interfaces_up "$NAME"`
+    scmt_container_config "$NAME"
     OPT_CORES=""
     [ $CORES -gt 1 ] && OPT_CORES="-smp $CORES"
     OPT_VNC=""
@@ -476,8 +524,7 @@ scmt_start(){
         $OPT_CORES \
         -name "$NAME" \
         -drive file=image.qcow2,index=0,media=disk,cache=none,format=qcow2 \
-        -net nic,macaddr="$MAC",vlan=0,model=virtio \
-        -net tap,vlan=0,ifname="$TAP",script=no \
+        $OPT_NET \
         -pidfile pid \
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
@@ -695,8 +742,16 @@ if [ -f "$SCMT_CONFIG" ]; then
 fi
 
 [ -z "$RUNDIR" ] && RUNDIR="./run"
-[ -z "$TMPDIR" ] && TMPDIR="/tmp"
-[ -z "$NET_BRIDGE" ] && NET_BRIDGE="br0"
+[ -z "$SCMT_GROUP" ] && SCMT_GROUP="scmt"
+
+IS_SCMT=no
+for G in `id --groups --name`; do
+    [ "$G" = "$SCMT_GROUP" ] && IS_SCMT=yes && break
+done
+[ "$IS_SCMT" = "yes" ] || \
+    scmt_error "Sorry, you are not a member of 'scmt' group."
+
+umask -u=rwx,g=rwx,o=
 
 mkdir -p "$RUNDIR" || exit 1
 

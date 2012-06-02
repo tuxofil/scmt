@@ -1,4 +1,3 @@
-scmt	ALL=NOPASSWD: /usr/sbin/tunctl -d scmt-*
-scmt	ALL=NOPASSWD: /usr/sbin/tunctl -u scmt -t scmt-*
-scmt	ALL=NOPASSWD: /bin/ip link set scmt-* up
-scmt	ALL=NOPASSWD: /usr/sbin/brctl addif *
+%scmt	ALL=NOPASSWD: /usr/sbin/tunctl -b -g scmt
+%scmt	ALL=NOPASSWD: /bin/ip link set tap* up
+%scmt	ALL=NOPASSWD: /usr/sbin/brctl addif *
