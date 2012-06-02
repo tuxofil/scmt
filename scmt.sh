@@ -368,6 +368,11 @@ scmt_lock(){
         scmt_error "There is pending operation for \"$1\". Try again later."
 }
 
+scmt_unlock(){
+    local LOCKFILE="$SCMT_RUNDIR"/"$1"/lock
+    flock --unlock 3
+}
+
 scmt_bridges(){
     "$BRCTL" show | \
         tail --lines=+2 | \
@@ -596,6 +601,7 @@ scmt_start(){
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
         $OPT_VNC &
+    scmt_unlock "$NAME"
     set +e
     scmt_verbose "Started"
 }
