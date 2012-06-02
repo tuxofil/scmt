@@ -525,7 +525,8 @@ scmt_del(){
     scmt_stop "$NAME"
     scmt_verbose "Removing container files..."
     rm -rf -- "$SCMT_RUNDIR"/"$NAME"/*
-    [ -d "$SCMT_RUNDIR"/"$NAME" ] || \
+    rmdir "$SCMT_RUNDIR"/"$NAME"
+    [ -d "$SCMT_RUNDIR"/"$NAME" ] && \
         scmt_warning "Some files was not removed"
     scmt_verbose "Deleted"
 }
