@@ -302,21 +302,8 @@ scmt_shutdown_cleanup(){
     rm -f -- "$PIDFILE" "$MONSOCK"
 }
 
-scmt_pid(){
-    local PIDFILE PID
-    PIDFILE=`scmt_pid_name "$1"`
-    if [ -f "$PIDFILE" ]; then
-        PID=`cat "$PIDFILE"`
-        [ -z "$PID" ] && return 1
-        ps --pid "$PID" --no-headers | \
-            grep --quiet "kvm" && \
-            echo "$PID" && return 0
-    fi
-    return 1
-}
-
 scmt_is_running(){
-    scmt_pid "$1" > /dev/null
+    scmt_monitor_run "$1" "" > /dev/null 2>&1
 }
 
 scmt_is_autostart(){
@@ -776,11 +763,11 @@ scmt_status(){
         esac
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
-    if scmt_pid "$NAME" > /dev/null; then
+    if scmt_is_running "$NAME"; then
         echo "Running"
-    else
-        echo "Stopped"
+        exit 0
     fi
+    echo "Stopped"
 }
 
 ## ----------------------------------------------------------------------
