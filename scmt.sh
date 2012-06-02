@@ -748,7 +748,7 @@ done
 [ "$IS_SCMT" = "yes" ] || \
     scmt_error "Sorry, you are not a member of 'scmt' group."
 
-umask -u=rwx,g=rwx,o=
+umask u=rwx,g=rwx,o=
 
 [ $# = 0 ] && HELP=0 && scmt_help base
 MODE="$1"
