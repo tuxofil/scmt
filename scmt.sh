@@ -64,8 +64,8 @@ scmt_help(){
         base)
             echo -n "list|add|del|start|start-all|stop|stop-all|"
             echo    "restart|reboot|kill|status [options] [args]"
-            echo -n "\t$BASENAME list|add|del|start|start-all|stop|stop-all|"
-            echo    "restart|reboot|kill|status --help"
+            echo -n "\t$BASENAME list|add|del|start|start-all|stop|"
+            echo    "stop-all|restart|reboot|kill|status --help"
             echo "Common options:"
             echo "\t--verbose - be verbose;"
             echo "\t--quiet   - do not show warnings;"
@@ -89,7 +89,8 @@ scmt_help(){
             ;;
         del)
             echo "del container-name"
-            echo "Completely removes container from system (All data will be lost)."
+            echo -n "Completely removes container from system "
+            echo    "(All container data will be removed)."
             ;;
         start)
             echo "start container-name"
@@ -97,7 +98,8 @@ scmt_help(){
             ;;
         start-all)
             echo "start-all"
-            echo "Starts all containers with auto-start flag. Use on system start."
+            echo -n "Starts all containers with auto-start flag. "
+            echo    "Use on system start."
             ;;
         stop)
             echo "stop [--wait SECONDS] container-name"
