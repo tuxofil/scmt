@@ -13,16 +13,15 @@
 ## ----------------------------------------------------------------------
 
 # Where containers image and configs will be stored.
-# Default: ./run
-#SCMT_RUNDIR=./run
-
-# Configuration file.
-# Default: /etc/scmt.conf
-#SCMT_CONFIG=/etc/scmt.conf
+# Default: /var/lib/scmt
+#SCMT_RUNDIR=/var/lib/scmt
 
 # System group name
 # Default: scmt
 #SCMT_GROUP=scmt
+
+[ -z "$SCMT_RUNDIR" ] && SCMT_RUNDIR="/var/lib/scmt"
+[ -z "$SCMT_GROUP" ] && SCMT_GROUP="scmt"
 
 ## ----------------------------------------------------------------------
 ## Binary paths
@@ -739,16 +738,6 @@ QUIET=$?
 
 echo "$@" | grep -E -- '^(.*\W)?(--help|-h)(\W.*)?$' > /dev/null
 HELP=$?
-
-# use config file if such exists
-[ -z "$SCMT_CONFIG" ] && SCMT_CONFIG="/etc/scmt.conf"
-if [ -f "$SCMT_CONFIG" ]; then
-    . "$SCMT_CONFIG" || \
-        scmt_error "failed to read config file \"$SCMT_CONFIG\""
-fi
-
-[ -z "$SCMT_RUNDIR" ] && SCMT_RUNDIR="./run"
-[ -z "$SCMT_GROUP" ] && SCMT_GROUP="scmt"
 
 IS_SCMT=no
 for G in `id --groups --name`; do
