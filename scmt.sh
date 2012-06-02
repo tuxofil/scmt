@@ -390,20 +390,26 @@ scmt_interfaces_up(){
     scmt_verbose "Preparing network interfaces..."
     set -e
     unset MAC BRIDGE
-    scmt_container_config "$NAME"
     touch "$IFS_FILE"
     I=0
-    while [ ! -z "${MAC[$I]}" ]; do
+    eval MAC$I=""
+    scmt_container_config "$NAME"
+    MAC=$(eval echo "\$MAC$I")
+    while [ ! -z "$MAC" ]; do
         TAP=$(sudo -n "$TUNCTL" -b -g "$SCMT_GROUP")
         echo "$TAP" >> "$IFS_FILE"
         sudo -n ip link set "$TAP" up
-        if [ ! -z "${BRIDGE[$I]}" ]; then
-            scmt_check_bridge "${BRIDGE[$I]}"
-            sudo -n "$BRCTL" addif "${BRIDGE[$I]}" "$TAP"
+        BRIDGE=$(eval echo "\$BRIDGE$I")
+        if [ ! -z "$BRIDGE" ]; then
+            scmt_check_bridge "$BRIDGE"
+            sudo -n "$BRCTL" addif "$BRIDGE" "$TAP"
         fi
-        echo -n "-net nic,macaddr=${MAC[$I]},vlan=$I,model=virtio "
+        echo -n "-net nic,macaddr=$MAC,vlan=$I,model=virtio "
         echo    "-net tap,vlan=$I,ifname=$TAP,script=no,downscript=no "
         I=$(($I + 1))
+        eval MAC$I=""
+        scmt_container_config "$NAME"
+        MAC=$(eval echo "\$MAC$I")
     done
     set +e
 }
@@ -442,7 +448,7 @@ scmt_list(){
             if scmt_is_verbose; then
                 scmt_container_config "$NAME"
                 [ $VNC = 0 ] && VNC="no"
-                echo "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC"
+                echo "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0"
             else
                 echo "$NAME\t$STATUS"
             fi
@@ -495,8 +501,8 @@ scmt_add(){
     cat > "$TGTDIR"/config <<-EOF
 	MEM=$MEM
 	CORES=$CORES
-	MAC[0]=$MAC
-	BRIDGE[0]=$BRIDGE
+	MAC0=$MAC
+	BRIDGE0=$BRIDGE
 	VNC=$VNC
 	EOF
     scmt_set_autostart "$NAME"
