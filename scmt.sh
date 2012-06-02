@@ -191,7 +191,7 @@ scmt_check_name(){
     [ -z "$1" ] && scmt_error "container name not specified"
     echo "$1" | \
         tr '[:upper:]' '[:lower:]' | \
-        grep -E '^[a-z0-9-]{1,10}$' || \
+        grep -E '^[a-z0-9-]{1,20}$' || \
         scmt_error "bad name"
 }
 
@@ -414,7 +414,7 @@ scmt_list(){
                 echo "$NAME\t$STATUS"
             fi
         done
-    } | expand --tabs=11,19,26,32,36
+    } | expand --tabs=21,29,36,42,46
 }
 
 scmt_add(){
