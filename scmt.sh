@@ -83,7 +83,7 @@ scmt_help(){
             echo "Shows deployed containers with their statuses."
             ;;
         add)
-            echo -n "add [--mem MBYTES] [--cores CORES] [--vnc] [--start] "
+            echo -n "add [--mem MBYTES] [--cores CORES] [--vnc] [--no-start] "
             echo -n "[--net [BRIDGE][,MACADDR]] [--net ...] "
             echo    "container-name image-url"
             echo "Adds new container with disk image from URL specified."
@@ -475,6 +475,7 @@ scmt_add(){
     scmt_help add
     local NETCFG=""
     local NETINDEX=0
+    START="yes"
     while true; do
         case "$1" in
             --verbose) shift ;;
@@ -490,7 +491,7 @@ scmt_add(){
                 NETINDEX=$(($NETINDEX + 1))
                 shift 2 ;;
             --vnc) VNC=`scmt_free_vnc_port` ; shift ;;
-            --start) START="yes" ; shift ;;
+            --no-start) START="no" ; shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
