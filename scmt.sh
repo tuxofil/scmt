@@ -57,6 +57,11 @@ scmt_verbose(){
     :
 }
 
+scmt_debug(){
+    [ $DEBUG = 0 ] && echo "$BASENAME: DEBUG: $1" 1>&2
+    :
+}
+
 scmt_help(){
     [ $HELP != 0 ] && return 0
     echo -n "Usage:\n\t$BASENAME "
@@ -428,6 +433,7 @@ scmt_add(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --mem) MEM="$2" ; shift 2 ;;
             --cores) CORES="$2" ; shift 2 ;;
             --mac) MAC="$2" ; shift 2 ;;
@@ -484,6 +490,7 @@ scmt_del(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -508,6 +515,7 @@ scmt_start(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -568,6 +576,7 @@ scmt_stop(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --wait) MAX_WAIT_TIME="$2"; shift 2 ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
@@ -600,6 +609,7 @@ scmt_stop_all(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --wait) export MAX_WAIT_TIME="$2"; shift 2 ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
@@ -637,6 +647,7 @@ scmt_kill(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -664,6 +675,7 @@ scmt_restart(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --wait) MAX_WAIT_TIME="$2"; shift 2 ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
@@ -686,6 +698,7 @@ scmt_reboot(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -709,6 +722,7 @@ scmt_status(){
             --verbose) shift ;;
             --trace) shift ;;
             --quiet) shift ;;
+            --debug) shift ;;
             --) shift ; break ;;
             -*) scmt_error "Unknown option: \"$1\"" ;;
             *) break ;;
@@ -739,6 +753,9 @@ VERBOSE=$?
 
 echo "$@" | grep -E -- '^(.*\W)?--quiet(\W.*)?$' > /dev/null
 QUIET=$?
+
+echo "$@" | grep -E -- '^(.*\W)?--debug(\W.*)?$' > /dev/null
+DEBUG=$?
 
 echo "$@" | grep -E -- '^(.*\W)?(--help|-h)(\W.*)?$' > /dev/null
 HELP=$?
