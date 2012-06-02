@@ -13,6 +13,8 @@
 ## ----------------------------------------------------------------------
 
 # Where containers image and configs will be stored.
+# This directory must exist, have group specified in SCMT_GROUP
+# configuration variable and 2770 permissions.
 # Default: /var/lib/scmt
 #SCMT_RUNDIR=/var/lib/scmt
 
