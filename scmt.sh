@@ -333,7 +333,7 @@ scmt_unset_autostart(){
 }
 
 scmt_autostart_flag_name(){
-    "$SCMT_RUNDIR"/"$1"/autostart.flag
+    echo "$SCMT_RUNDIR"/"$1"/autostart.flag
 }
 
 scmt_wait_stop(){
