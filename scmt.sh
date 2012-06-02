@@ -78,7 +78,7 @@ scmt_help(){
             ;;
         add)
             echo -n "add [--mem MBYTES] [--cores CORES] "
-            echo -n "[--mac MAC] [--vnc] [--start] "
+            echo -n "[--mac MAC] [--bridge BRIDGE] [--vnc] [--start] "
             echo    "container-name image-url"
             echo "Adds new container with disk image from URL specified."
             ;;
@@ -416,7 +416,7 @@ scmt_list(){
 }
 
 scmt_add(){
-    local MEM CORES MAC VNC START NAME TGTDIR URL RETVAL
+    local MEM CORES MAC BRIDGE VNC START NAME TGTDIR URL RETVAL
     scmt_verbose "Entering 'add' mode..."
     scmt_help add
     while true; do
@@ -427,6 +427,7 @@ scmt_add(){
             --mem) MEM="$2" ; shift 2 ;;
             --cores) CORES="$2" ; shift 2 ;;
             --mac) MAC="$2" ; shift 2 ;;
+            --bridge) BRIDGE="$2" ; shift 2 ;;
             --vnc) VNC=`scmt_free_vnc_port` shift ;;
             --start) START="yes" ;;
             --) shift ; break ;;
@@ -438,9 +439,8 @@ scmt_add(){
     [ -z "$CORES" ] && CORES=1
     [ -z "$MAC" ] && MAC=`scmt_gen_mac`
     [ -z "$VNC" ] && VNC=0
-    [ -z "$1" ] && scmt_error "Container name undefined"
     NAME=`scmt_check_name "$1"` || exit $?
-    scmt_verbose "$NAME == MEM=${MEM}M; CORES=${CORES}; MAC=${MAC}; VNC=${VNC}"
+    scmt_verbose "$NAME: MEM=${MEM}M; CORES=${CORES}; MAC=${MAC}; VNC=${VNC}"
     TGTDIR="$RUNDIR"/"$NAME"
     [ -f "$TGTDIR"/config ] && \
         scmt_error "container with name \"$NAME\" already exists"
@@ -459,7 +459,8 @@ scmt_add(){
     cat > "$TGTDIR"/config <<-EOF
 MEM=$MEM
 CORES=$CORES
-MAC=$MAC
+MAC[0]=$MAC
+BRIDGE[0]=$BRIDGE
 VNC=$VNC
 START=no
 EOF
