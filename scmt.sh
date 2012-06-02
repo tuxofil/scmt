@@ -469,7 +469,13 @@ scmt_add(){
             --mem) MEM="$2" ; shift 2 ;;
             --cores) CORES="$2" ; shift 2 ;;
             --mac) MAC="$2" ; shift 2 ;;
-            --bridge) BRIDGE="$2" ; shift 2 ;;
+            --bridge)
+                if [ -z "$2" ]; then
+                    BRIDGE="###none###"
+                else
+                    BRIDGE="$2"
+                fi
+                shift 2 ;;
             --vnc) VNC=`scmt_free_vnc_port` shift ;;
             --start) START="yes" ;;
             --) shift ; break ;;
@@ -481,6 +487,21 @@ scmt_add(){
     [ -z "$CORES" ] && CORES=1
     [ -z "$MAC" ] && MAC=`scmt_gen_mac`
     [ -z "$VNC" ] && VNC=0
+    if [ "$BRIDGE" = "###none###" ]; then
+        BRIDGE=""
+    else
+        BRIDGES=$(scmt_bridges)
+        BRIDGES_COUNT=`echo "$BRIDGES" | wc -w`
+        if [ $BRIDGES_COUNT = 1 ]; then
+            BRIDGE=`echo "$BRIDGES" | awk '{print $1}'`
+        elif [ $BRIDGES_COUNT = 0 ]; then
+            scmt_warning "There is no bridges in host system."
+            BRIDGE=""
+        else
+            scmt_warning "Target bridge does not specified."
+            BRIDGE=""
+        fi
+    fi
     NAME=`scmt_check_name "$1"` || exit $?
     scmt_verbose "$NAME: MEM=${MEM}M; CORES=${CORES}; MAC=${MAC}; VNC=${VNC}"
     TGTDIR="$SCMT_RUNDIR"/"$NAME"
