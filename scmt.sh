@@ -606,6 +606,7 @@ scmt_start(){
     [ $VNC -gt 0 ] && OPT_VNC="-vnc :$VNC"
     scmt_verbose "Starting container..."
     cd "$SCMT_RUNDIR"/"$NAME"/run
+    trap "scmt_unlock \"$NAME\"; exit 130" INT
     kvm \
         -m "${MEM}M" \
         $OPT_CORES \
