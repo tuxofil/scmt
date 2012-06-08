@@ -462,7 +462,12 @@ scmt_list(){
                 MAC0=""
                 scmt_container_config "$NAME"
                 [ $VNC = 0 ] && VNC="no"
-                echo "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0,$BRIDGE0"
+                echo -n "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0"
+                if [ -z "$BRIDGE0" ]; then
+                    echo ""
+                else
+                    echo "$BRIDGE0"
+                fi
                 local I=1
                 eval MAC$I=""
                 scmt_container_config "$NAME"
