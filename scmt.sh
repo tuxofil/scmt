@@ -571,7 +571,7 @@ scmt_del(){
     done
     NAME=`scmt_check_real_name "$1"` || exit $?
     scmt_lock "$NAME"
-    scmt_stop "$NAME"
+    scmt_kill "$NAME"
     scmt_verbose "Removing container files..."
     rm -rf -- "$SCMT_RUNDIR"/"$NAME"/*
     rmdir "$SCMT_RUNDIR"/"$NAME"
