@@ -466,7 +466,7 @@ scmt_list(){
                 if [ -z "$BRIDGE0" ]; then
                     echo ""
                 else
-                    echo "$BRIDGE0"
+                    echo ",$BRIDGE0"
                 fi
                 local I=1
                 eval MAC$I=""
