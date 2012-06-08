@@ -451,7 +451,7 @@ scmt_list(){
     scmt_help list
     {
         if scmt_is_verbose; then
-            echo "Name\tStatus\tMemTot\tCores\tVNC\tMAC"
+            echo "Name\tStatus\tMemTot\tCores\tVNC\tNetInterfaces"
         else
             echo "Name\tStatus"
         fi
@@ -459,9 +459,27 @@ scmt_list(){
             STATUS="Stopped"
             scmt_is_running "$NAME" && STATUS="Running"
             if scmt_is_verbose; then
+                MAC0=""
                 scmt_container_config "$NAME"
                 [ $VNC = 0 ] && VNC="no"
-                echo "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0"
+                echo "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0,$BRIDGE0"
+                local I=1
+                eval MAC$I=""
+                scmt_container_config "$NAME"
+                MAC=$(eval echo "\$MAC$I")
+                while [ ! -z "$MAC" ]; do
+                    echo -n "\t\t\t\t\t$MAC"
+                    BRIDGE=$(eval echo "\$BRIDGE$I")
+                    if [ -z "$BRIDGE" ]; then
+                        echo ""
+                    else
+                        echo ",$BRIDGE"
+                    fi
+                    I=$(($I + 1))
+                    eval MAC$I=""
+                    scmt_container_config "$NAME"
+                    MAC=$(eval echo "\$MAC$I")
+                done
             else
                 echo "$NAME\t$STATUS"
             fi
