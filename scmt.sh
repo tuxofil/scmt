@@ -178,17 +178,17 @@ scmt_extract_image(){
         --file "$1" \
         --no-same-owner \
         --no-same-permissions \
-        --to-stdout > "$IMG_RAW"
+        --to-stdout > "$IMG_RAW" || return $?
     scmt_debug "`ls -l \"$IMG_RAW\"`"
     scmt_verbose "Converting image to QCOW2 format..."
     IMG_QCOW2="$2"/run/image.qcow2
-    qemu-img convert -O qcow2 "$IMG_RAW" "$IMG_QCOW2"
+    qemu-img convert -O qcow2 "$IMG_RAW" "$IMG_QCOW2" || return $?
     ## set disk image permissions explicitly because of
     ## 'qemu-img' tool ignores 'umask' setting
-    chmod 660 "$IMG_QCOW2"
+    chmod 660 "$IMG_QCOW2" || return $?
     scmt_debug "`ls -l \"$IMG_QCOW2\"`"
     scmt_verbose "Removing raw image..."
-    rm -f -- "$IMG_RAW"
+    rm -f -- "$IMG_RAW" || return $?
 }
 
 scmt_gen_mac(){
