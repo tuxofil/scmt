@@ -280,6 +280,10 @@ scmt_monitor_run(){
     echo "$2" | \
         socat STDIN unix:"`scmt_mon_sock_name \"$1\"`" > \
         /dev/null 2>&1
+    RET=$?
+    [ $RET = 127 ] && \
+        scmt_error "'socat' is not found on your system"
+    return $RET
 }
 
 scmt_powerdown(){
