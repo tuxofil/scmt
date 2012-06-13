@@ -14,3 +14,12 @@ Requirements:
 - socat
 - flock
 
+Installation
+
+On Debian systems:
+
+# addgroup --system scmt
+# install -m440 sudoers /etc/sudoers.d/scmt
+# install -m755 scmt.sh /usr/bin/scmt
+# install -d -m2770 -g scmt /var/lib/scmt
+
