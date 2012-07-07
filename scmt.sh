@@ -193,8 +193,9 @@ scmt_extract_image(){
 
 scmt_gen_mac(){
     scmt_verbose "Generating MAC addr..."
+    echo -n "40:"
     cat /dev/urandom | \
-        head --bytes=6 | \
+        head --bytes=5 | \
         hexdump -v -e '/1 "%02X:"' | \
         sed 's/:$//'
 }
