@@ -604,6 +604,7 @@ scmt_start(){
     scmt_lock "$NAME"
     set -e
     OPT_NET=`scmt_interfaces_up "$NAME"`
+    EXTRA_ARGS=""
     scmt_container_config "$NAME"
     OPT_CORES=""
     [ $CORES -gt 1 ] && OPT_CORES="-smp $CORES"
@@ -618,6 +619,7 @@ scmt_start(){
         -name "$NAME" \
         -drive file=image.qcow2,index=0,media=disk,cache=none,format=qcow2 \
         $OPT_NET \
+        $EXTRA_ARGS \
         -pidfile pid \
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
