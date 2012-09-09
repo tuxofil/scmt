@@ -549,6 +549,7 @@ scmt_add(){
 	MEM=$MEM
 	CORES=$CORES
 	VNC=$VNC
+	EXTRA_ARGS=""
 	$NETCFG
 	EOF
     scmt_set_autostart "$NAME"
