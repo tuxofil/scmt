@@ -466,6 +466,7 @@ scmt_list(){
             if scmt_is_verbose; then
                 MAC0=""
                 scmt_container_config "$NAME"
+                [ -z "$VNC" ] && VNC=0
                 [ $VNC = 0 ] && VNC="no"
                 echo -n "$NAME\t$STATUS\t${MEM}M\t$CORES\t$VNC\t$MAC0"
                 if [ -z "$BRIDGE0" ]; then
@@ -610,6 +611,7 @@ scmt_start(){
     OPT_CORES=""
     [ $CORES -gt 1 ] && OPT_CORES="-smp $CORES"
     OPT_VNC=""
+    [ -z "$VNC" ] && VNC=0
     [ $VNC -gt 0 ] && OPT_VNC="-vnc :$VNC"
     scmt_verbose "Starting container..."
     cd "$SCMT_RUNDIR"/"$NAME"/run
