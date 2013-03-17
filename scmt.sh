@@ -165,30 +165,57 @@ scmt_download_image(){
         --show-error \
         --output "$FILENAME" \
         "$1" || return $?
-    scmt_extract_image "$FILENAME" "$2" || return $?
+    scmt_extract_image "$FILENAME" "$2" tmp || return $?
     rm -rf -- "$FILENAME"
     return 0
 }
 
 scmt_extract_image(){
-    local IMG_RAW IMG_QCOW2
-    scmt_verbose "Extracting image from $1..."
-    IMG_RAW="$2"/run/image.raw
-    tar --extract \
-        --file "$1" \
-        --no-same-owner \
-        --no-same-permissions \
-        --to-stdout > "$IMG_RAW" || return $?
-    scmt_debug "`ls -l \"$IMG_RAW\"`"
-    scmt_verbose "Converting image to QCOW2 format..."
-    IMG_QCOW2="$2"/run/image.qcow2
-    qemu-img convert -O qcow2 "$IMG_RAW" "$IMG_QCOW2" || return $?
-    ## set disk image permissions explicitly because of
-    ## 'qemu-img' tool ignores 'umask' setting
-    chmod 660 "$IMG_QCOW2" || return $?
-    scmt_debug "`ls -l \"$IMG_QCOW2\"`"
-    scmt_verbose "Removing raw image..."
-    rm -f -- "$IMG_RAW" || return $?
+    local SRC_FILE="$1"
+    local IMG_FILE="$2"/run/image
+    local COPIED=""
+    if scmt_is_file_of "$SRC_FILE" "gzip"; then
+        scmt_verbose "Decompressing image from $SRC_FILE..."
+        gunzip --stdout "$SRC_FILE" > "$IMG_FILE.2" || return $?
+        mv --force -- "$IMG_FILE.2" "$IMG_FILE" || return $?
+        SRC_FILE="$IMG_FILE"
+        COPIED=yes
+    fi
+    if scmt_is_file_of "$SRC_FILE" "tar archive"; then
+        scmt_verbose "Untaring..."
+        tar --extract --file "$SRC_FILE" --no-same-owner \
+            --no-same-permissions --to-stdout > "$IMG_FILE.2" || \
+            return $?
+        mv --force -- "$IMG_FILE.2" "$IMG_FILE" || return $?
+        SRC_FILE="$IMG_FILE"
+        COPIED=yes
+    fi
+    if scmt_is_file_of "$SRC_FILE" "boot sector"; then
+        scmt_verbose "Converting image to QCOW2 format..."
+        IMG_FILE="$2"/run/image.qcow2
+        qemu-img convert -O qcow2 "$SRC_FILE" "$IMG_FILE" || return $?
+        ## set disk image permissions explicitly because of
+        ## 'qemu-img' tool ignores 'umask' setting
+        chmod 660 "$IMG_FILE" || return $?
+        SRC_FILE="$IMG_FILE"
+        COPIED=yes
+    fi
+    if ! scmt_is_file_of "$SRC_FILE" "qcow image"; then
+        FORMAT=`file --brief "$SRC_FILE"`
+        scmt_error "Unknown format of '$SRC_FILE': $FORMAT" noexit
+        return 1
+    fi
+    IMG_FILE="$2"/run/image.qcow2
+    if [ "$COPIED" = "yes" -o "$3" = "tmp" ]; then
+        mv --force -- "$SRC_FILE" "$IMG_FILE" || return $?
+    else
+        scmt_verbose "Copying $SRC_FILE to destination dir..."
+        cp --force -- "$SRC_FILE" "$IMG_FILE" || return $?
+    fi
+}
+
+scmt_is_file_of(){
+    file --brief "$1" | grep --ignore-case --quiet "$2"
 }
 
 scmt_gen_mac(){
