@@ -1,0 +1,19 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# This has to be exported to make some magic below work.
+export DH_OPTIONS
+
+%:
+	dh $@
+
+# Implement staged installation
+DESTDIR = debian/scmt
+override_dh_install:
+	install -m 755 -d $(DESTDIR)/etc
+	install -m 644 scmt.conf $(DESTDIR)/etc
+	install -m 755 -d $(DESTDIR)/usr/bin
+	install -m 755 scmt.sh $(DESTDIR)/usr/bin/scmt
+	install -m 755 -d $(DESTDIR)/etc/sudoers.d
+	install -m 440 sudoers $(DESTDIR)/etc/sudoers.d/scmt
+	install -m 2770 -d $(DESTDIR)/var/lib/scmt

@@ -8,28 +8,17 @@
 ### Description : Simple Container Management Tool
 ###----------------------------------------------------------------------
 
-## ----------------------------------------------------------------------
-## Main definitions
-## ----------------------------------------------------------------------
+set -e
+. /etc/scmt.conf
+set +e
 
-# Where containers image and configs will be stored.
-# This directory must exist, have group specified in SCMT_GROUP
-# configuration variable and 2770 permissions.
-# Default: /var/lib/scmt
-#SCMT_RUNDIR=/var/lib/scmt
-
-# System group name
-# Default: scmt
-#SCMT_GROUP=scmt
+## ----------------------------------------------------------------------
+## Some default values
 
 [ -z "$SCMT_RUNDIR" ] && SCMT_RUNDIR="/var/lib/scmt"
 [ -z "$SCMT_GROUP" ] && SCMT_GROUP="scmt"
-
-## ----------------------------------------------------------------------
-## Binary paths
-
-BRCTL=/usr/sbin/brctl
-TUNCTL=/usr/sbin/tunctl
+[ -z "$BRCTL" ] && BRCTL="/usr/sbin/brctl"
+[ -z "$TUNCTL" ] && TUNCTL="/usr/sbin/tunctl"
 
 ## ----------------------------------------------------------------------
 ## Utility functions

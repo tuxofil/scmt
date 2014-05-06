@@ -1,0 +1,17 @@
+Source: scmt
+Section: utils
+Priority: extra
+Maintainer: Aleksey Morarash <aleksey.morarash@gmail.com>
+Build-Depends: debhelper (>= 8.0.0)
+Standards-Version: 3.9.3
+Homepage: https://github.com/tuxofil/scmt
+Vcs-Browser: https://github.com/tuxofil/scmt
+Vcs-Git: https://github.com/tuxofil/scmt.git
+
+Package: scmt
+Architecture: all
+Depends: qemu-kvm, iproute, sudo, curl, sed, uml-utilities,
+ bridge-utils, bsdmainutils, socat
+Pre-Depends: adduser
+Description: Simple QEMU Container Management Tool
+ Simple QEMU Container Management Tool.
