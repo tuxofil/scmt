@@ -1,0 +1,3 @@
+%scmt	ALL=NOPASSWD: /usr/sbin/tunctl -b -g scmt
+%scmt	ALL=NOPASSWD: /bin/ip link set tap* up
+%scmt	ALL=NOPASSWD: /sbin/brctl addif *
