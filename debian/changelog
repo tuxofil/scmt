@@ -1,3 +1,9 @@
+scmt (0.1.1) unstable; urgency=low
+
+  * remove release number from changelog.
+
+ -- Aleksey Morarash <aleksey.morarash@gmail.com>  Fri, 12 Feb 2016 11:50:13 +0200
+
 scmt (0.1.0-2) unstable; urgency=low
 
   * Initial release.
