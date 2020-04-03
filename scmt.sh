@@ -834,8 +834,8 @@ echo "$@" | grep -E -- '^(.*\W)?--trace(\W.*)?$' > /dev/null && set -x
 
 BASENAME=`basename $0`
 
-UID=`id --user`
-[ $UID = 0 ] && \
+U_ID=`id --user`
+[ $U_ID = 0 ] && \
     scmt_error "Do not run this script with superuser privileges."
 
 echo "$@" | grep -E -- '^(.*\W)?--verbose(\W.*)?$' > /dev/null
