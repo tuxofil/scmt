@@ -642,7 +642,6 @@ scmt_start(){
         -pidfile pid \
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
-        -usbdevice tablet \
         $OPT_VNC &
     scmt_unlock "$NAME"
     set +e
