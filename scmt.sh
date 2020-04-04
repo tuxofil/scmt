@@ -417,8 +417,8 @@ scmt_interfaces_up(){
             scmt_check_bridge "$BRIDGE"
             sudo -n "$BRCTL" addif "$BRIDGE" "$TAP"
         fi
-        echo -n "-net nic,macaddr=$MAC,vlan=$I,model=virtio "
-        echo    "-net tap,vlan=$I,ifname=$TAP,script=no,downscript=no "
+        echo -n "-device virtio-net-pci,mac=$MAC,netdev=n$I "
+        echo    "-netdev tap,id=n$I,ifname=$TAP,script=no,downscript=no "
         I=$(($I + 1))
         eval MAC$I=""
         scmt_container_config "$NAME"
