@@ -289,6 +289,10 @@ scmt_mon_sock_name(){
     echo "$SCMT_RUNDIR"/"$1"/run/monitor.sock
 }
 
+scmt_com_sock_name(){
+    echo "$SCMT_RUNDIR"/"$1"/run/serial.sock
+}
+
 scmt_ifs_name(){
     echo "$SCMT_RUNDIR"/"$1"/run/ifs
 }
@@ -303,16 +307,29 @@ scmt_monitor_run(){
     return $RET
 }
 
+scmt_serial_run(){
+    echo "$2" | \
+        socat STDIN unix:"`scmt_com_sock_name \"$1\"`" > \
+        /dev/null 2>&1
+    RET=$?
+    [ $RET = 127 ] && \
+        scmt_error "'socat' is not found on your system"
+    return $RET
+}
+
 scmt_powerdown(){
     scmt_monitor_run "$1" system_powerdown || :
+    scmt_serial_run "$1" system_powerdown || :
 }
 
 scmt_reset(){
     scmt_monitor_run "$1" system_reset || :
+    scmt_serial_run "$1" system_reset || :
 }
 
 scmt_do_kill(){
     scmt_monitor_run "$1" quit || :
+    scmt_serial_run "$1" quit || :
 }
 
 scmt_shutdown_cleanup(){
@@ -325,6 +342,7 @@ scmt_shutdown_cleanup(){
 
 scmt_is_running(){
     scmt_monitor_run "$1" "" > /dev/null 2>&1
+    scmt_serial_run "$1" "" > /dev/null 2>&1
 }
 
 scmt_is_autostart(){
@@ -642,6 +660,7 @@ scmt_start(){
         -pidfile pid \
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
+        -serial unix:"`scmt_com_sock_name \"$NAME\"`,server,nowait" \
         $OPT_VNC &
     scmt_unlock "$NAME"
     set +e
