@@ -289,6 +289,10 @@ scmt_mon_sock_name(){
     echo "$SCMT_RUNDIR"/"$1"/run/monitor.sock
 }
 
+scmt_com_sock_name(){
+    echo "$SCMT_RUNDIR"/"$1"/run/serial.sock
+}
+
 scmt_ifs_name(){
     echo "$SCMT_RUNDIR"/"$1"/run/ifs
 }
@@ -303,16 +307,29 @@ scmt_monitor_run(){
     return $RET
 }
 
+scmt_serial_run(){
+    echo "$2" | \
+        socat STDIN unix:"`scmt_com_sock_name \"$1\"`" > \
+        /dev/null 2>&1
+    RET=$?
+    [ $RET = 127 ] && \
+        scmt_error "'socat' is not found on your system"
+    return $RET
+}
+
 scmt_powerdown(){
     scmt_monitor_run "$1" system_powerdown || :
+    scmt_serial_run "$1" system_powerdown || :
 }
 
 scmt_reset(){
     scmt_monitor_run "$1" system_reset || :
+    scmt_serial_run "$1" system_reset || :
 }
 
 scmt_do_kill(){
     scmt_monitor_run "$1" quit || :
+    scmt_serial_run "$1" quit || :
 }
 
 scmt_shutdown_cleanup(){
@@ -325,6 +342,7 @@ scmt_shutdown_cleanup(){
 
 scmt_is_running(){
     scmt_monitor_run "$1" "" > /dev/null 2>&1
+    scmt_serial_run "$1" "" > /dev/null 2>&1
 }
 
 scmt_is_autostart(){
@@ -417,8 +435,8 @@ scmt_interfaces_up(){
             scmt_check_bridge "$BRIDGE"
             sudo -n "$BRCTL" addif "$BRIDGE" "$TAP"
         fi
-        echo -n "-net nic,macaddr=$MAC,vlan=$I,model=virtio "
-        echo    "-net tap,vlan=$I,ifname=$TAP,script=no,downscript=no "
+        echo -n "-device virtio-net-pci,mac=$MAC,netdev=n$I "
+        echo    "-netdev tap,id=n$I,ifname=$TAP,script=no,downscript=no "
         I=$(($I + 1))
         eval MAC$I=""
         scmt_container_config "$NAME"
@@ -642,7 +660,7 @@ scmt_start(){
         -pidfile pid \
         -nographic \
         -monitor unix:"`scmt_mon_sock_name \"$NAME\"`,server,nowait" \
-        -usbdevice tablet \
+        -serial unix:"`scmt_com_sock_name \"$NAME\"`,server,nowait" \
         $OPT_VNC &
     scmt_unlock "$NAME"
     set +e
@@ -834,8 +852,8 @@ echo "$@" | grep -E -- '^(.*\W)?--trace(\W.*)?$' > /dev/null && set -x
 
 BASENAME=`basename $0`
 
-UID=`id --user`
-[ $UID = 0 ] && \
+U_ID=`id --user`
+[ $U_ID = 0 ] && \
     scmt_error "Do not run this script with superuser privileges."
 
 echo "$@" | grep -E -- '^(.*\W)?--verbose(\W.*)?$' > /dev/null
